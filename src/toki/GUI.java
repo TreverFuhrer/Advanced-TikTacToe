@@ -62,7 +62,7 @@ public class GUI implements ActionListener{
 					
 					button.setText(this.playerSymbol == 1 ? "X" : "O");
 					button.setEnabled(false);
-					if(checkIfWon()) {
+					if(checkIfWon() > 0) {
 						JOptionPane.showMessageDialog(this.frame, "You Win!!", "", JOptionPane.PLAIN_MESSAGE);
 						resetGame();
 					}
@@ -118,28 +118,86 @@ public class GUI implements ActionListener{
 	
 	
 	private void computerMove() {
-		boolean done = true;
-		do {
-			int row = random(2, 0);
-			int col = random(2, 0);
-			if(this.board[row][col] == 0) {
-				this.board[row][col] = 2;
-				this.buttons[row][col].setText(this.playerSymbol == 2 ? "X" : "O");
-				this.buttons[row][col].setEnabled(false);
-				if(checkIfWon()) {
-					JOptionPane.showMessageDialog(this.frame, "You Lose... :(", "", JOptionPane.PLAIN_MESSAGE);
-					resetGame();
+		
+		int[][] board = this.board;
+		Integer maxEval = Integer.MIN_VALUE;
+		int maxRow=0, maxCol=0;
+		for(int row = 0; row < 3; row++) {
+			for(int col = 0; col < 3; col++) {
+				if(board[row][col] == 0) {
+					System.out.println("Test 1");
+					board[row][col] = 2;
+					int eval = minimax(board, 1, false);
+					board[row][col] = 0;
+					if(eval > maxEval) {
+						System.out.println("Test 2");
+						maxEval = eval;
+						maxRow = row;
+						maxCol = col;
+					}
 				}
-				else if(checkIfTie()) {
-					JOptionPane.showMessageDialog(this.frame, "oooooo, its a tie...", " ", JOptionPane.PLAIN_MESSAGE);
-					resetGame();
-				}
-				done = false;
 			}
-		}while(done);
+		}
+		this.board[maxRow][maxCol] = 2;
+		this.buttons[maxRow][maxCol].setText(this.playerSymbol == 2 ? "X" : "O");
+		this.buttons[maxRow][maxCol].setEnabled(false);
+		
+		if(checkIfWon() > 0) {
+			JOptionPane.showMessageDialog(this.frame, "You Lose... :(", "", JOptionPane.PLAIN_MESSAGE);
+			resetGame();
+		}
+		else if(checkIfTie()) {
+			JOptionPane.showMessageDialog(this.frame, "oooooo, its a tie...", " ", JOptionPane.PLAIN_MESSAGE);
+			resetGame();
+		}
 	}
 
 	
+	
+	
+	private int minimax(int[][] board, int depth, boolean maximizingPlayer) {
+		int check = evaluateGame();
+		if(check != 0 || depth == 0) return check == 1 ? -2 : 1;
+		if(checkFullBoard()) return -1;
+		
+		
+		System.out.println("Test 3");
+		
+		if(maximizingPlayer) {
+			Integer maxEval = Integer.MIN_VALUE;
+			for(int row = 0; row < 3; row++) {
+				for(int col = 0; col < 3; col++) {
+					if(board[row][col] == 0) {
+						System.out.println("Test 4");
+						board[row][col] = 2;
+						int eval = minimax(board, depth-1, false);
+						board[row][col] = 0;
+						maxEval = Math.max(maxEval, eval);
+						System.out.println("maxEval " + maxEval);
+						System.out.println("depth " + depth);
+					}
+				}
+			}
+			return maxEval;
+		}
+		else {
+			Integer minEval = Integer.MAX_VALUE;
+			for(int row = 0; row < 3; row++) {
+				for(int col = 0; col < 3; col++) {
+					if(board[row][col] == 0) {
+						System.out.println("Test 5");
+						board[row][col] = 1;
+						int eval = minimax(board, depth-1, true);
+						board[row][col] = 0;
+						minEval = Math.min(minEval, eval);
+						System.out.println("minEval " + minEval);
+						System.out.println("depth " + depth);
+					}
+				}
+			}
+			return minEval;
+		}
+	}
 	
 	
 	
@@ -181,13 +239,13 @@ public class GUI implements ActionListener{
 	 * Checks if someone won the game
 	 * @param board deep array
 	 */
-	private boolean checkIfWon() {
+	private int checkIfWon() {
 		for(int row = 0; row < 3; row++) {
 			if(this.board[row][0] != 0 && this.board[row][0] == this.board[row][1] && this.board[row][1] == this.board[row][2]) {
 				this.buttons[row][0].setBackground(Color.GREEN);
 				this.buttons[row][1].setBackground(Color.GREEN);
 				this.buttons[row][2].setBackground(Color.GREEN);
-				return true;
+				return this.board[row][0];
 			}
 		}
 		for(int col = 0; col < 3; col++) {
@@ -195,24 +253,23 @@ public class GUI implements ActionListener{
 				this.buttons[0][col].setBackground(Color.GREEN);
 				this.buttons[1][col].setBackground(Color.GREEN);
 				this.buttons[2][col].setBackground(Color.GREEN);
-				return true;
+				return this.board[0][col];
 			}
 		}
 		if(this.board[0][0] != 0 && this.board[0][0] == this.board[1][1] && this.board[1][1] == this.board[2][2]) {
 			this.buttons[0][0].setBackground(Color.GREEN);
 			this.buttons[1][1].setBackground(Color.GREEN);
 			this.buttons[2][2].setBackground(Color.GREEN);
-			return true;
+			return this.board[0][0];
 		}
 		if(this.board[0][2] != 0 && this.board[0][2] == this.board[1][1] && this.board[1][1] == this.board[2][0]) {
 			this.buttons[0][2].setBackground(Color.GREEN);
 			this.buttons[1][1].setBackground(Color.GREEN);
 			this.buttons[2][0].setBackground(Color.GREEN);
-			return true;
+			return this.board[0][2];
 		}
-		return false;
+		return 0;
 	}
-	
 	
 	
 	
@@ -231,5 +288,40 @@ public class GUI implements ActionListener{
 				this.buttons[j][k].setBackground(Color.RED);
 		return true;
 	}
+	
+	
+	
+	
+	private int evaluateGame() {
+		for(int row = 0; row < 3; row++) {
+			if(this.board[row][0] != 0 && this.board[row][0] == this.board[row][1] && this.board[row][1] == this.board[row][2]) {
+				return this.board[row][0];
+			}
+		}
+		for(int col = 0; col < 3; col++) {
+			if(this.board[0][col] != 0 && this.board[0][col] == this.board[1][col] && this.board[1][col] == this.board[2][col]) {
+				return this.board[0][col];
+			}
+		}
+		if(this.board[0][0] != 0 && this.board[0][0] == this.board[1][1] && this.board[1][1] == this.board[2][2]) {
+			return this.board[0][0];
+		}
+		if(this.board[0][2] != 0 && this.board[0][2] == this.board[1][1] && this.board[1][1] == this.board[2][0]) {
+			return this.board[0][2];
+		}
+		return 0;
+	}
+	
+	
+	
+	
+	public boolean checkFullBoard() {
+		for(int j = 0; j < 3; j++) 
+			for(int k = 0; k < 3; k++) 
+				if(this.board[j][k] == 0)
+					return false;
+		return true;
+	}
+	
 	
 }
