@@ -21,6 +21,7 @@ public class GUI implements ActionListener{
 	private int[][] board;
 	private int playerSymbol;
 	private JPanel panel;
+	private int gameState = 0;
 	
 	public GUI() {
 		initialize();
@@ -53,15 +54,14 @@ public class GUI implements ActionListener{
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		JButton button = (JButton)e.getSource();
-		
 		for(int j = 0; j < this.buttons.length; j++) {
 			for(int k = 0; k < this.buttons.length; k++) {
 				if(this.buttons[j][k]==button) {
 					
 					this.board[j][k] = 1;
-					
 					button.setText(this.playerSymbol == 1 ? "X" : "O");
 					button.setEnabled(false);
+					this.gameState += 1;
 					if(checkIfWon() > 0) {
 						JOptionPane.showMessageDialog(this.frame, "You Win!!", "", JOptionPane.PLAIN_MESSAGE);
 						resetGame();
@@ -117,20 +117,17 @@ public class GUI implements ActionListener{
 	
 	
 	
+	
 	private void computerMove() {
-		
-		int[][] board = this.board;
-		Integer maxEval = Integer.MIN_VALUE;
+		Integer maxEval = (int) Double.NEGATIVE_INFINITY;
 		int maxRow=0, maxCol=0;
 		for(int row = 0; row < 3; row++) {
 			for(int col = 0; col < 3; col++) {
-				if(board[row][col] == 0) {
-					System.out.println("Test 1");
-					board[row][col] = 2;
-					int eval = minimax(board, 1, false);
-					board[row][col] = 0;
+				if(this.board[row][col] == 0) {
+					this.board[row][col] = 2;
+					int eval = minimax(this.board, 1, false);
+					this.board[row][col] = 0;
 					if(eval > maxEval) {
-						System.out.println("Test 2");
 						maxEval = eval;
 						maxRow = row;
 						maxCol = col;
@@ -138,6 +135,23 @@ public class GUI implements ActionListener{
 				}
 			}
 		}
+		// Computer gets first move pick middle square
+		if(this.gameState == 0) {
+			maxRow = 1;
+			maxCol = 1;
+		}
+		// Computer move after first player move is random
+		else if(this.gameState == 1) {
+			boolean foundPos = false;
+			do {
+				maxRow = (int)(Math.random()*3)+0;
+				maxCol = (int)(Math.random()*3)+0;
+				if(this.board[maxRow][maxCol] == 0)
+					foundPos = true;
+			}while(!foundPos);
+			this.gameState = 2;
+		}
+		
 		this.board[maxRow][maxCol] = 2;
 		this.buttons[maxRow][maxCol].setText(this.playerSymbol == 2 ? "X" : "O");
 		this.buttons[maxRow][maxCol].setEnabled(false);
@@ -155,43 +169,33 @@ public class GUI implements ActionListener{
 	
 	
 	
-	private int minimax(int[][] board, int depth, boolean maximizingPlayer) {
+	private int minimax(int[][] board, int depth, boolean isMaximizing) {
 		int check = evaluateGame();
-		if(check != 0 || depth == 0) return check == 1 ? -2 : 1;
-		if(checkFullBoard()) return -1;
+		if(check != 0) return check == 2 ? 100 : -100;
+		if(depth == 0) return 0;
+		if(checkFullBoard()) return 0;
 		
-		
-		System.out.println("Test 3");
-		
-		if(maximizingPlayer) {
-			Integer maxEval = Integer.MIN_VALUE;
+		if(isMaximizing) {
+			Integer maxEval = (int) Double.NEGATIVE_INFINITY;
 			for(int row = 0; row < 3; row++) {
 				for(int col = 0; col < 3; col++) {
 					if(board[row][col] == 0) {
-						System.out.println("Test 4");
 						board[row][col] = 2;
-						int eval = minimax(board, depth-1, false);
+						maxEval = Math.max(maxEval, minimax(board, depth-1, !isMaximizing));
 						board[row][col] = 0;
-						maxEval = Math.max(maxEval, eval);
-						System.out.println("maxEval " + maxEval);
-						System.out.println("depth " + depth);
 					}
 				}
 			}
 			return maxEval;
 		}
 		else {
-			Integer minEval = Integer.MAX_VALUE;
+			Integer minEval = (int) Double.POSITIVE_INFINITY;
 			for(int row = 0; row < 3; row++) {
 				for(int col = 0; col < 3; col++) {
 					if(board[row][col] == 0) {
-						System.out.println("Test 5");
 						board[row][col] = 1;
-						int eval = minimax(board, depth-1, true);
+						minEval = Math.min(minEval, minimax(board, depth-1, !isMaximizing));
 						board[row][col] = 0;
-						minEval = Math.min(minEval, eval);
-						System.out.println("minEval " + minEval);
-						System.out.println("depth " + depth);
 					}
 				}
 			}
@@ -229,6 +233,7 @@ public class GUI implements ActionListener{
 				this.buttons[row][col].setEnabled(true);
 			}
 		}
+		this.gameState = 0;
 		this.playerSymbol = whoStarts();
 	}
 	
@@ -278,7 +283,7 @@ public class GUI implements ActionListener{
 	 * Checks if the game resulted in a tie
 	 * @param board deep array
 	 */
-	public boolean checkIfTie() {
+	private boolean checkIfTie() {
 		for(int j = 0; j < 3; j++) 
 			for(int k = 0; k < 3; k++) 
 				if(this.board[j][k] == 0)
@@ -315,7 +320,7 @@ public class GUI implements ActionListener{
 	
 	
 	
-	public boolean checkFullBoard() {
+	private boolean checkFullBoard() {
 		for(int j = 0; j < 3; j++) 
 			for(int k = 0; k < 3; k++) 
 				if(this.board[j][k] == 0)
